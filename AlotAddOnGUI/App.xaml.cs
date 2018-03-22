@@ -18,6 +18,8 @@ namespace AlotAddOnGUI {
         [STAThread]
         public static void Main()
         {
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            Directory.SetCurrentDirectory(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location));
             try
             {
                 var application = new App();
@@ -27,7 +29,26 @@ namespace AlotAddOnGUI {
             catch (Exception e)
             {
                 OnFatalCrash(e);
+                throw e;
             }
+        }
+		
+		private static System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            var probingPath = AppDomain.CurrentDomain.BaseDirectory + @"Data\lib";
+            var assyName = new AssemblyName(args.Name);
+
+            var newPath = Path.Combine(probingPath, assyName.Name);
+            if (!newPath.EndsWith(".dll"))
+            {
+                newPath = newPath + ".dll";
+            }
+            if (File.Exists(newPath))
+            {
+                var assy = Assembly.LoadFile(newPath);
+                return assy;
+            }
+            return null;
         }
 
         public App() : base()
@@ -70,25 +91,6 @@ namespace AlotAddOnGUI {
         }
 
         private void Application_Exit(object sender, ExitEventArgs e) {}
-
-        private static System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            var probingPath = AppDomain.CurrentDomain.BaseDirectory + @"Data\lib";
-            var assyName = new AssemblyName(args.Name);
-
-            var newPath = Path.Combine(probingPath, assyName.Name);
-            if (!newPath.EndsWith(".dll"))
-            {
-                newPath = newPath + ".dll";
-            }
-            if (File.Exists(newPath))
-            {
-                var assy = Assembly.LoadFile(newPath);
-                return assy;
-            }
-
-            return null;
-        }
     }
 
     class Options
