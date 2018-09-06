@@ -15,53 +15,33 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace AlotAddOnGUI
-{
+namespace AlotAddOnGUI {
     /// <summary>
     /// Interaction logic for ModConfigurationDialog.xaml
     /// </summary>
-    public partial class ModConfigurationDialog : CustomDialog
-    {
+    public partial class ModConfigurationDialog : CustomDialog {
         private MainWindow mainWindowRef;
 
-        public ModConfigurationDialog(AddonFile af, MainWindow mainWindow)
-        {
+        public ModConfigurationDialog(AddonFile af, MainWindow mainWindow) {
             InitializeComponent();
-            Title = af.FriendlyName + " configuration";
             mainWindowRef = mainWindow;
             DataContext = af;
-            ListView_ChoiceFiles.ItemsSource = af.ChoiceFiles;
-            if (af.ComparisonsLink == null)
-            {
-                Comparison_Button.Visibility = Visibility.Collapsed;
-            }
         }
 
 
-        private async void Close_Dialog_Click(object sender, RoutedEventArgs e)
-        {
-            foreach (ChoiceFile cf in ListView_ChoiceFiles.Items)
-            {
-                var row = (System.Windows.Controls.ListViewItem)ListView_ChoiceFiles.ItemContainerGenerator.ContainerFromItem(cf);
-
-
-            }
-
+        private async void Close_Dialog_Click(object sender, RoutedEventArgs e) {
             await mainWindowRef.HideMetroDialogAsync(this);
         }
 
-        private void Combobox_DropdownClosed(object sender, EventArgs e)
-        {
-            if (sender is ComboBox)
-            {
+        private void Combobox_DropdownClosed(object sender, EventArgs e) {
+            if (sender is ComboBox) {
                 ComboBox cb = (ComboBox)sender;
                 ChoiceFile choisefile = (ChoiceFile)cb.DataContext;
                 choisefile.SelectedIndex = cb.SelectedIndex;
             }
         }
 
-        private void Comparisons_Click(object sender, RoutedEventArgs e)
-        {
+        private void Comparisons_Click(object sender, RoutedEventArgs e) {
         }
     }
 }
