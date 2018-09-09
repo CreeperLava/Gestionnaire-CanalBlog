@@ -8,7 +8,7 @@
     mc:Ignorable="d"
         BorderBrush="{DynamicResource AccentColorBrush}"
         BorderThickness="1"
-        Title="Addon Download Assistant" MinHeight="400" MinWidth="360" Height="400" Width="600"
+        Title="{Binding recipe.title}" MinHeight="400" MinWidth="360" Height="400" Width="600"
         Topmost="True"
         Closing="Window_Closing"
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
@@ -18,5 +18,56 @@
         ShowIconOnTitleBar="False"
     >
     <Window.Resources>
+        <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MetroCheckBox}">
+            <Style.Resources>
+                <SolidColorBrush x:Key="HighlightBrush" Color="{DynamicResource IdealForegroundColor}" />
+            </Style.Resources>
+        </Style>
+        <Style x:Key="LinkLabel" TargetType="Button">
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="Lime"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock TextDecorations="Underline" 
+                    Text="{TemplateBinding Content}"
+                    Background="{TemplateBinding Background}"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Foreground" Value="MediumVioletRed"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Visible">
+        <Border BorderBrush="#252525" BorderThickness="12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TextBlock_intro" HorizontalAlignment="Left" Grid.Row="0" TextAlignment="Left" TextWrapping="Wrap">
+                    <Bold>INTRODUCTION</Bold>
+                </TextBlock>
+                <TextBlock Name="TextBlock_ingred" HorizontalAlignment="Left" Grid.Row="1" TextAlignment="Left" TextWrapping="Wrap">
+                    <Bold>INGRÉDIENTS</Bold>
+                </TextBlock>
+                <TextBlock Name="TextBlock_prepa" HorizontalAlignment="Left" Grid.Row="2" TextAlignment="Left" TextWrapping="Wrap">
+                    <Bold>PRÉPARATION</Bold>
+                </TextBlock>
+                <Image Name="photo" Grid.Row="3" />
+            </Grid>
+        </Border>
+    </ScrollViewer>
 </Controls:MetroWindow>

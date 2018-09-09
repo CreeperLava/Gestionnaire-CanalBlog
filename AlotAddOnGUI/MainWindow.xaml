@@ -168,7 +168,8 @@
             </ListView.GroupStyle>
             <ListView.Resources>
                 <ContextMenu x:Key="ItemContextMenu">
-                    <MenuItem Header="Ouvrir page web" Click="ContextMenu_Open" ToolTip="Ouvre la page web de la recette"/>
+                    <MenuItem Header="Voir la recette" Click="ContextMenu_Recipe" ToolTip="Affiche la recette"/>
+                    <MenuItem Header="Voir la page web" Click="ContextMenu_Open" ToolTip="Ouvre la page web de la recette"/>
                     <MenuItem Header="Voir la photo" Click="ContextMenu_Update" ToolTip="Affiche la photo de la recette"/>
                 </ContextMenu>
             </ListView.Resources>
@@ -193,10 +194,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Button x:Name="Button_TODO" Grid.Column="0" Content="TODO" IsEnabled="true" Click="Button_TODO_Click" FontWeight="Bold" Style="{StaticResource BottomButton_Left}" FontSize="11" Controls:ControlsHelper.ContentCharacterCasing="Upper"/>
             <Button Grid.Column="1" />
             <Button Grid.Column="2" />
-            <Button x:Name="Button_DownloadAssistant" Content="Download Assistant" IsEnabled="true" FontSize="10" Grid.Column="3" ToolTip="Opens floating window that makes it easier to download Addon files" Click="Button_TODO_Click" Style="{StaticResource BottomButton_BlackMiddle}" Controls:ControlsHelper.ContentCharacterCasing="Upper"/>
             <Button x:Name="Button_Settings" Grid.Column="4" Content="Settings" IsEnabled="true"  Style="{StaticResource BottomButton_BlackRight}" Controls:ControlsHelper.ContentCharacterCasing="Upper" FontSize="10" Click="Button_TODO_Click" ToolTip="Opens the settings and status panel"/>
         </Grid>
     </Grid>

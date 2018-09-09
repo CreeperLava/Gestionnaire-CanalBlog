@@ -23,6 +23,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Data;
 using System.Net;
+using System.Threading;
 
 namespace AlotAddOnGUI {
     /// <summary>
@@ -116,40 +117,38 @@ namespace AlotAddOnGUI {
         }
 
         public void UpdateDatabase() {
-            int count = 0;
             foreach (var urlMonth in GetUrls(urlIndex, month, "//a[@href]", "href")) {
-                foreach (var urlRecipe in GetUrls(urlMonth, recipe, "//meta[@content]", "content")) {
+                Parallel.ForEach(GetUrls(urlMonth, recipe, "//meta[@content]", "content"), urlRecipe => {
                     var sql = String.Format("SELECT * FROM recipes WHERE url='{0}' LIMIT 1", urlRecipe);
                     var result = (new SQLiteCommand(sql, dbConnection)).ExecuteScalar();
                     if (result != null) // check if recipe in db
-                        continue; // if yes, skip it
+                        return; // if yes, skip it
 
                     var err = ExtractRecipe(urlRecipe);
-                    if (err == 0) // TODO replace with real log
-                        count++; // TODO display how many updated in GUI
-                    else {
-                        Debug.Write("Error selecting ");
+                    String debug = "[ERROR] Error selecting ";
+                    if (err != 0) {
                         switch (err) {
                             case -1:
-                                Debug.Write("date");
+                                debug += "date";
                                 break;
                             case -2:
-                                Debug.Write("title");
+                                debug += "title";
                                 break;
                             case -3:
-                                Debug.Write("articleNode");
+                                debug += "articleNode";
                                 break;
                             case -4:
-                                Debug.Write("imgNode");
+                                debug += "imgNode";
                                 break;
                             case -5:
-                                Debug.Write("imageUrl");
+                                debug += "imageUrl";
                                 break;
                         }
-
-                        Debug.WriteLine(String.Format(" for recipe {0} : node is null", urlRecipe));
                     }
-                }
+
+                    debug += String.Format(" for recipe {0} : node is null", urlRecipe);
+                    Debug.WriteLine(debug);
+                });
             }
             (new SQLiteCommand("VACUUM", dbConnection)).ExecuteNonQuery();
         }
@@ -162,10 +161,6 @@ namespace AlotAddOnGUI {
                 da.Fill(ds);
                 ds.Tables[0].WriteXml(xmlRecipes);
             }
-        }
-
-        private void Button_TODO_Click(object sender, RoutedEventArgs e) {
-            Debug.Write("click");
         }
 
         private async void LoadRecipes() {
@@ -193,7 +188,7 @@ namespace AlotAddOnGUI {
                         Ready = true,
                 }).ToList();
             } catch (Exception e) {
-                Debug.Write("Error has occured parsing the XML!");
+                Debug.Write("[ERROR] Error has occured parsing the XML!");
                 Debug.Write(App.FlattenException(e));
                 MessageDialogResult result = await this.ShowMessageAsync("Error reading file manifest", "An error occured while reading the manifest file for installation.\n\n" + e.Message, MessageDialogStyle.Affirmative);
                 return;
@@ -225,17 +220,39 @@ namespace AlotAddOnGUI {
             return res;
         }
 
-        public void SaveImage(string url, string name) {
+        public String SaveImage(string url, string name) {
             WebClient webClient = new WebClient();
             string path = imgPath + name + ".jpg";
-            if (!File.Exists(path))
-                using (webClient)
+            if (!File.Exists(path)) {
+                using (webClient) {
                     try {
-                        Debug.WriteLine("Start download of " + url);
-                        webClient.DownloadFileAsync(new Uri(url), path);
+                        Debug.WriteLine("[LOG] Start download of " + url);
+                        webClient.DownloadFile(new Uri(url), path);
+
+                        if (new FileInfo(path).Length == 0) {
+                            Debug.WriteLine("[WARNING] File " + url + " could not be downloaded");
+                            File.Delete(path);
+                            return "";
+                        } else {
+                            return name;
+                        }
                     } catch (Exception e) {
-                        Debug.Write("File " + url + " could not be downloaded : " + e.Message);
+                        Debug.WriteLine("[WARNING]File " + url + " could not be downloaded : " + e.Message);
+                        Thread.Sleep(2000);
+                        Debug.WriteLine("[LOG] Restart download of " + url);
+                        try {
+                            webClient.DownloadFile(new Uri(url), path);
+                            return name;
+                        } catch (Exception f) {
+                            Debug.Write("[WARNING] File " + url + " could not be downloaded : " + f.Message);
+                            return "";
+                        }
                     }
+                }
+            } else {
+                return name;
+            }
+            
         }
 
         public int ExtractRecipe(string url) {
@@ -260,17 +277,19 @@ namespace AlotAddOnGUI {
             if (articleNode == null)
                 return -3;
 
-            HtmlNode imgNode = articleNode.SelectSingleNode("//div[@class='articlebody']/p/a");
+            HtmlNode imgNode = articleNode.SelectSingleNode("//div[@class='articlebody']/p/a/img");
             if (imgNode == null)
                 return -4;
-            var imageUrl = imgNode.GetAttributeValue("href", "").Replace("_o", "").Replace(".to_resize_150x3000", "");
+            var imageUrl = imgNode.GetAttributeValue("src", "").Replace("_o", "").Replace(".to_resize_150x3000", "");
             if (!picture.Match(imageUrl).Success) { 
-                Debug.WriteLine("No valid image for " + url);
+                Debug.WriteLine("[WARNING] No valid image for " + url);
                 return -5;
             }
 
-            var imageName = imgNode.GetAttributeValue("name", ""); // get full quality picture
-            SaveImage(imageUrl, imageName);
+            var imageName = imgNode.ParentNode.GetAttributeValue("name", ""); // get full quality picture
+            imageName = SaveImage(imageUrl, imageName);
+            if (imageName != "")
+                Debug.WriteLine("[LOG] File " + imageUrl + " successfully downloaded");
 
             var mode = 0;
             string[] texte = { "", "", "" };
@@ -313,6 +332,10 @@ namespace AlotAddOnGUI {
             return 0;
         }
 
+        private void Button_TODO_Click(object sender, RoutedEventArgs e) {
+
+        }
+
         private void InitializeContextMenu(object sender, ContextMenuEventArgs e) {
             var rowIndex = ListView_Files.SelectedIndex;
             var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
@@ -320,6 +343,14 @@ namespace AlotAddOnGUI {
 
             foreach (System.Windows.Controls.MenuItem mi in cm.Items)
                 mi.Visibility = Visibility.Visible;
+        }
+
+        private void ContextMenu_Recipe(object sender, RoutedEventArgs e) {
+            var rowIndex = ListView_Files.SelectedIndex;
+            var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
+            AddonFile recipe = (AddonFile)row.DataContext;
+            AddonDownloadAssistant viewRecipe = new AddonDownloadAssistant(this, recipe);
+            viewRecipe.Show();
         }
 
         private void ContextMenu_Open(object sender, RoutedEventArgs e) {
@@ -336,7 +367,7 @@ namespace AlotAddOnGUI {
             try {
                 Process.Start(imgPath + recipe.imageNom + ".jpg");
             } catch (Exception de) {
-                Debug.Write("File " + imgPath + recipe.imageNom + ".jpg" + " not found");
+                Debug.Write("[ERROR] File " + imgPath + recipe.imageNom + ".jpg" + " not found");
             }
         }
 
@@ -374,40 +405,14 @@ namespace AlotAddOnGUI {
                     //this.WindowState = System.Windows.WindowState.Minimized;
                     this.nIcon.ShowBalloonTip(14000, "Directions", "Download the file titled: \"" + fname + "\"", ToolTipIcon.Info);
                 }
-            } catch (Exception other) {
+            } catch (Exception) {
                 System.Windows.Clipboard.SetText(e.Uri.ToString());
                 await this.ShowMessageAsync("Unable to open web browser", "Unable to open your default web browser. Open your browser and paste the link (already copied to clipboard) into your URL bar." + fname != null ? " Download the file named " + fname + ", then drag and drop it onto this program's interface." : "");
             }
         }
 
         private async void Window_Closing(object sender, CancelEventArgs e) {
-            bool isClosing = true;
-            if (true) {
-                e.Cancel = true;
-
-                MetroDialogSettings mds = new MetroDialogSettings();
-                mds.AffirmativeButtonText = "Yes";
-                mds.NegativeButtonText = "No";
-                mds.DefaultButtonFocus = MessageDialogResult.Negative;
-
-                MessageDialogResult result = await this.ShowMessageAsync("Closing ALOT Installer may leave game in a broken state", "MEM is currently installing textures. Closing the program will likely leave your game in an unplayable, broken state. Are you sure you want to exit?", MessageDialogStyle.AffirmativeAndNegative, mds);
-                if (result == MessageDialogResult.Affirmative) {
-                    Close();
-                } else {
-                    isClosing = false;
-                }
-            }
-
-            if (isClosing) {
-                if (DOWNLOAD_ASSISTANT_WINDOW != null) {
-                    DOWNLOAD_ASSISTANT_WINDOW.SHUTTING_DOWN = true;
-                    DOWNLOAD_ASSISTANT_WINDOW.Close();
-                }
-
-                if (BuildWorker.IsBusy || InstallWorker.IsBusy) {
-                    //We should add indicator that we closed while busy
-                }
-            }
+            Close();
         }
 
         private void Expander_Expanded(object sender, RoutedEventArgs e) {
