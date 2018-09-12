@@ -156,45 +156,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="classes\ALOTVersionInfo.cs" />
     <Compile Include="classes\AddonFile.cs" />
-    <Compile Include="classes\ChoiceFile.cs" />
-    <Compile Include="classes\CopyDir.cs" />
-    <Compile Include="classes\DataConverters.cs" />
-    <Compile Include="classes\FlashWindowHelper.cs" />
-    <Compile Include="classes\IniFile.cs" />
-    <Compile Include="classes\IniSettingsHandler.cs" />
-    <Compile Include="classes\KnownFolders.cs" />
-    <Compile Include="classes\ME3Constants.cs" />
-    <Compile Include="classes\PackageFile.cs" />
-    <Compile Include="classes\RelayCommand.cs" />
-    <Compile Include="classes\StreamIO.cs" />
-    <Compile Include="classes\TasksDisplayEngine.cs" />
-    <Compile Include="ManifestTutorial.cs" />
-    <Compile Include="music\LoopStream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>AssemblyInfo.tt</DependentUpon>
     </Compile>
-    <Compile Include="ThreadCommandDialogOptions.cs" />
     <Compile Include="AddonDownloadAssistant.xaml.cs">
       <DependentUpon>AddonDownloadAssistant.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ui\ALOT_AddonUIMode_ThreadedTasks.cs" />
-    <Compile Include="ui\ALOT_InstallMode_ThreadedTasks.cs" />
-    <Compile Include="ui\DiagnosticsWindow.xaml.cs">
-      <DependentUpon>DiagnosticsWindow.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ui\ModConfigurationDialog.xaml.cs">
-      <DependentUpon>ModConfigurationDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="ui\ProgressBarSmooth.cs" />
-    <Compile Include="ui\ProgressWeightPercentages.cs" />
-    <Compile Include="ui\UpdateAvailableDialog.xaml.cs">
-      <DependentUpon>UpdateAvailableDialog.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Utilites.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -211,21 +181,9 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ui\DiagnosticsWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="ui\ModConfigurationDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="ui\UpdateAvailableDialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="ui\WiderDialogStyle.xaml">
-      <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
@@ -242,17 +200,9 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="app.manifest" />
-    <None Include="Data\music\me1.ogg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\music\me2.ogg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\music\me3.ogg">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\AssemblyInfo.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
@@ -268,66 +218,19 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="7z\7z.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="7z\7z.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Data\bin\lzma.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Resource Include="ui\installtips.xml" />
-    <Resource Include="images\me1_bg_alt.jpg" />
-    <Resource Include="images\me3_bg_alt.jpg" />
     <Resource Include="images\greydownload.png" />
     <Resource Include="images\greycheckmark.png" />
     <Resource Include="images\origin\me1update.png" />
     <Resource Include="images\origin\me2update.png" />
-    <Resource Include="licenses\nvorbis.txt" />
-    <Resource Include="licenses\erikjs-binkw32.txt" />
-    <None Include="licenses\IndirectSound.txt" />
-    <Resource Include="images\me2_bg_alt.jpg" />
-    <None Include="Data\bin\PermissionsGranter.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\bin\7z.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\bin\7z.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Resource Include="images\info.ico" />
     <Resource Include="images\greencheckmark.png" />
     <Resource Include="images\orangedownload.png" />
     <None Include="ALOTADDON.ico" />
     <Resource Include="ALOTInstallerIcon.ico" />
-    <Content Include="binkw32\me1\dsound.dll" />
-    <Content Include="binkw32\me2\binkw23.dll" />
-    <Content Include="binkw32\me2\binkw32.dll" />
-    <Content Include="binkw32\me3\binkw23.dll" />
-    <Content Include="binkw32\me3\binkw32.dll" />
-    <Resource Include="images\me2_bg.jpg" />
-    <Resource Include="images\me3_bg.jpg" />
-    <Resource Include="images\me1_bg.jpg" />
     <Resource Include="images\greencheck_large.png" />
     <Resource Include="images\redx_large.png" />
     <Resource Include="images\workingicon.png" />
-    <Resource Include="images\firstrunbg.jpg" />
-    <Resource Include="images\logo_me1.png" />
-    <Resource Include="images\logo_me2.png" />
-    <Resource Include="images\logo_me3.png" />
     <Resource Include="images\waiting.png" />
-    <None Include="Data\bin\MassEffectModder.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\bin\MassEffectModder.pdb">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Data\bin\MassEffectModderNoGui.exe" />
-    <None Include="Data\bin\MassEffectModderNoGui.pdb">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
@@ -344,7 +247,9 @@
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="data\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

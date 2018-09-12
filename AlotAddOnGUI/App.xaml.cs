@@ -16,7 +16,7 @@ namespace AlotAddOnGUI {
         [STAThread]
         public static void Main() {
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            Directory.SetCurrentDirectory(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location));
+            Directory.SetCurrentDirectory(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location));
             try {
                 var application = new App();
                 application.InitializeComponent();
@@ -27,7 +27,7 @@ namespace AlotAddOnGUI {
             }
         }
 
-        private static System.Reflection.Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args) {
+        private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args) {
             var probingPath = AppDomain.CurrentDomain.BaseDirectory + @"Data\lib";
             var assyName = new AssemblyName(args.Name);
 

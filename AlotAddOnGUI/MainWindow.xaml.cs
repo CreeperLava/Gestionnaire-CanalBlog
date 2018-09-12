@@ -1,19 +1,15 @@
 ﻿using AlotAddOnGUI.classes;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
-using SlavaGu.ConsoleAppLauncher;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Forms;
-using System.Windows.Navigation;
 using System.Data.SQLite;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
@@ -24,61 +20,26 @@ using System.Linq;
 using System.Windows.Data;
 using System.Net;
 using System.Threading;
+using System.Globalization;
 
 namespace AlotAddOnGUI {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : MetroWindow, INotifyPropertyChanged {
-        public ConsoleApp BACKGROUND_MEM_PROCESS = null;
-        public bool BACKGROUND_MEM_RUNNING = false;
-        public const string UPDATE_ADDONUI_CURRENTTASK = "UPDATE_OPERATION_LABEL";
-        public const string HIDE_TIPS = "HIDE_TIPS";
-        public const string UPDATE_PROGRESSBAR_INDETERMINATE = "SET_PROGRESSBAR_DETERMINACY";
-        public const string INCREMENT_COMPLETION_EXTRACTION = "INCREMENT_COMPLETION_EXTRACTION";
-        public const string SHOW_DIALOG = "SHOW_DIALOG";
-        public const string ERROR_OCCURED = "ERROR_OCCURED";
-        public static string EXE_DIRECTORY = System.AppDomain.CurrentDomain.BaseDirectory;
-        public static string BINARY_DIRECTORY = EXE_DIRECTORY + "Data\\bin\\";
-        private bool PreventFileRefresh = false;
-        public const string REGISTRY_KEY = @"SOFTWARE\ALOTAddon";
-        public const string ME3_BACKUP_REGISTRY_KEY = @"SOFTWARE\Mass Effect 3 Mod Manager";
-
-        private BackgroundWorker BuildWorker = new BackgroundWorker();
-        private BackgroundWorker BackupWorker = new BackgroundWorker();
-        private BackgroundWorker InstallWorker = new BackgroundWorker();
-        private BackgroundWorker ImportWorker = new BackgroundWorker();
         public event PropertyChangedEventHandler PropertyChanged;
-        List<string> PendingUserFiles = new List<string>();
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) {
-            PropertyChangedEventHandler handler = PropertyChanged;
-
-            if (handler != null) {
-                handler(this, new PropertyChangedEventArgs(propertyName));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         NotifyIcon nIcon = new NotifyIcon();
-        private const string SETTINGSTR_DONT_FORCE_UPGRADES = "DontForceUpgrades";
-        private const string SETTINGSTR_REPACK = "RepackGameFiles";
-        private const string SETTINGSTR_IMPORTASMOVE = "ImportAsMove";
-        public const string SETTINGSTR_BETAMODE = "BetaMode";
-        public const string SETTINGSTR_DOWNLOADSFOLDER = "DownloadsFolder";
-        private const string SHOW_DIALOG_YES_NO = "SHOW_DIALOG_YES_NO";
-        public bool USING_BETA { get; private set; }
-        public bool SOUND_SETTING { get; private set; }
-        public StringBuilder BACKGROUND_MEM_STDOUT { get; private set; }
-        public int BACKUP_THREAD_GAME { get; private set; }
-        private List<FrameworkElement> currentFadeInItems = new List<FrameworkElement>();
-        internal AddonDownloadAssistant DOWNLOAD_ASSISTANT_WINDOW;
-        public static string DOWNLOADS_FOLDER;
-        public static bool DEBUG_LOGGING;
 
         // my vars
         private BindingList<AddonFile> allRecipes;
         string imgPath = @"data\img\";
         string database = @"data\recipes.db";
-        string xml = @"data\recipes.xml";
+        string blacklist = @"data\blacklist.txt";
+        List<string> blacklistUrls;
         SQLiteConnection dbConnection;
         StringWriter xmlRecipes = new StringWriter();
 
@@ -92,6 +53,10 @@ namespace AlotAddOnGUI {
         public MainWindow() {
             InitializeComponent();
             Directory.CreateDirectory(imgPath);
+
+            if (!File.Exists(blacklist))
+                File.Create(blacklist).Close();
+            blacklistUrls = new List<string>(File.ReadAllLines(blacklist)); // get all blacklisted urls, if any
 
             if (!File.Exists(database))
                 CreateDatabase();
@@ -107,7 +72,7 @@ namespace AlotAddOnGUI {
             dbConnection = new SQLiteConnection(String.Format("Data Source={0};", database));
             dbConnection.Open();
 
-            string sql = "CREATE TABLE recipes (title VARCHAR, url VARCHAR, date VARCHAR, imageUrl VARCHAR, imageNom VARCHAR, intro VARCHAR, prepa VARCHAR, ingred VARCHAR)";
+            string sql = "CREATE TABLE recipes (title VARCHAR, url VARCHAR, dateString VARCHAR, dateInt INTEGER, imageUrl VARCHAR, imageNom VARCHAR, intro VARCHAR, prepa VARCHAR, ingred VARCHAR, tag VARCHAR)";
             (new SQLiteCommand(sql, dbConnection)).ExecuteNonQuery();
         }
 
@@ -118,15 +83,15 @@ namespace AlotAddOnGUI {
 
         public void UpdateDatabase() {
             foreach (var urlMonth in GetUrls(urlIndex, month, "//a[@href]", "href")) {
-                Parallel.ForEach(GetUrls(urlMonth, recipe, "//meta[@content]", "content"), urlRecipe => {
+                Parallel.ForEach(GetUrls(urlMonth, recipe, "//meta[@content]", "content").Except(blacklistUrls), urlRecipe => {
                     var sql = String.Format("SELECT * FROM recipes WHERE url='{0}' LIMIT 1", urlRecipe);
                     var result = (new SQLiteCommand(sql, dbConnection)).ExecuteScalar();
                     if (result != null) // check if recipe in db
                         return; // if yes, skip it
 
                     var err = ExtractRecipe(urlRecipe);
-                    String debug = "[ERROR] Error selecting ";
                     if (err != 0) {
+                        String debug = "[ERROR] Error selecting ";
                         switch (err) {
                             case -1:
                                 debug += "date";
@@ -144,10 +109,10 @@ namespace AlotAddOnGUI {
                                 debug += "imageUrl";
                                 break;
                         }
+                        debug += String.Format(" for recipe {0} : node is null", urlRecipe);
+                        Debug.WriteLine(debug);
+                        File.AppendAllText(blacklist, urlRecipe + "\n");
                     }
-
-                    debug += String.Format(" for recipe {0} : node is null", urlRecipe);
-                    Debug.WriteLine(debug);
                 });
             }
             (new SQLiteCommand("VACUUM", dbConnection)).ExecuteNonQuery();
@@ -178,12 +143,14 @@ namespace AlotAddOnGUI {
                     select new AddonFile {
                         title = (string)e.Element("title"),
                         url = (string)e.Element("url"),
-                        stringDate = (string)e.Element("date"),
+                        dateString = (string)e.Element("dateString"),
+                        dateInt = (int)e.Element("dateInt"),
                         imageUrl = (string)e.Element("imageUrl"),
                         imageNom = (string)e.Element("imageNom"),
                         intro = (string)e.Element("intro"),
                         prepa = (string)e.Element("prepa"),
                         ingred = (string)e.Element("ingred"),
+                        tag = (string)e.Element("tag"),
                         Enabled = true,
                         Ready = true,
                 }).ToList();
@@ -194,15 +161,13 @@ namespace AlotAddOnGUI {
                 return;
             }
 
-            linqlist = linqlist.OrderByDescending(o => o.annee).ThenByDescending(x => x.date).ThenBy(x => x.title).ToList();
+            linqlist = linqlist.OrderByDescending(x => x.dateInt).ToList();
             allRecipes = new BindingList<AddonFile>(linqlist);
 
             var set = new HashSet<AddonFile>(allRecipes);
-            if (ListView_Files.Items.Count == 0) { // refresh ui
-                ListView_Files.ItemsSource = allRecipes;
-                CollectionView view = (CollectionView) CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
-                view.GroupDescriptions.Add(new PropertyGroupDescription("annee"));
-            }
+            ListView_Files.ItemsSource = allRecipes; // refresh UI
+            CollectionView view = (CollectionView) CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
+            view.GroupDescriptions.Add(new PropertyGroupDescription("annee"));
         }
 
         public static HashSet<string> GetUrls(string url, Regex r, string n, string attr) {
@@ -252,7 +217,6 @@ namespace AlotAddOnGUI {
             } else {
                 return name;
             }
-            
         }
 
         public int ExtractRecipe(string url) {
@@ -265,12 +229,14 @@ namespace AlotAddOnGUI {
             tmp = htmlDoc.SelectSingleNode("//div[@class='dateheader']"); // check if it is a valid recipe
             if (tmp == null)
                 return -1;
-            var date = tmp.InnerText;
+            string dateString = tmp.InnerText;
+            DateTime dateTime = DateTime.ParseExact(tmp.InnerText, "dd MMMM yyyy", new CultureInfo("fr-FR"));
+            int dateInt = int.Parse(dateTime.Year + (dateTime.Month < 10 ? "0" : "") + dateTime.Month + (dateTime.Day < 10 ? "0" : "") + dateTime.Day);
 
             tmp = htmlDoc.SelectSingleNode("//h2[@class='articletitle']");
             if (tmp == null)
                 return -2;
-            var title = String.Join("", tmp.InnerText.Split(Path.GetInvalidFileNameChars())).Replace("&quot;", @"'").Replace("&nbsp;", @"&"); // delete illegal characters
+            string title = String.Join("", tmp.InnerText.Split(Path.GetInvalidFileNameChars())).Replace("&quot;", @"'").Replace("&nbsp;", @"&"); // delete illegal characters
 
             // article itself (minus metadata)
             HtmlNode articleNode = htmlDoc.SelectSingleNode("//div[@class='articlebody']");
@@ -280,13 +246,13 @@ namespace AlotAddOnGUI {
             HtmlNode imgNode = articleNode.SelectSingleNode("//div[@class='articlebody']/p/a/img");
             if (imgNode == null)
                 return -4;
-            var imageUrl = imgNode.GetAttributeValue("src", "").Replace("_o", "").Replace(".to_resize_150x3000", "");
+            string imageUrl = imgNode.GetAttributeValue("src", "").Replace("_o", "").Replace(".to_resize_150x3000", "");
             if (!picture.Match(imageUrl).Success) { 
                 Debug.WriteLine("[WARNING] No valid image for " + url);
                 return -5;
             }
 
-            var imageName = imgNode.ParentNode.GetAttributeValue("name", ""); // get full quality picture
+            string imageName = imgNode.ParentNode.GetAttributeValue("name", ""); // get full quality picture
             imageName = SaveImage(imageUrl, imageName);
             if (imageName != "")
                 Debug.WriteLine("[LOG] File " + imageUrl + " successfully downloaded");
@@ -316,24 +282,67 @@ namespace AlotAddOnGUI {
                 }
             }
 
+            HtmlNode footerNode = htmlDoc.SelectSingleNode("//div[@class='itemfooter']");
+            HtmlNodeCollection tagNodes = footerNode.SelectNodes("//div[@class='itemfooter']/a[@rel='tag']");
+            string tag = "";
+
+            if(tagNodes == null)
+                Debug.WriteLine("[WARNING] No valid tags for " + url);
+            else
+                foreach (HtmlNode t in tagNodes)
+                    tag += t.InnerText.Replace("&nbsp;", "").Replace("&quot;", @"'") + " ";
+
             SQLiteCommand command = dbConnection.CreateCommand();
-            command.CommandText = "INSERT INTO recipes VALUES(@title, @url, @date, @imageUrl, @imageName, @texte0, @texte1, @texte2)";
+            command.CommandText = "INSERT INTO recipes VALUES(@title, @url, @dateString, @dateInt, @imageUrl, @imageName, @texte0, @texte1, @texte2, @tag)";
             command.Parameters.AddWithValue("@title", title).DbType = DbType.String;
             command.Parameters.AddWithValue("@url", url).DbType = DbType.String;
-            command.Parameters.AddWithValue("@date", date).DbType = DbType.String;
+            command.Parameters.AddWithValue("@dateString", dateString).DbType = DbType.String;
+            command.Parameters.AddWithValue("@dateInt", dateInt).DbType = DbType.Int32;
             command.Parameters.AddWithValue("@imageUrl", imageUrl).DbType = DbType.String;
             command.Parameters.AddWithValue("@imageName", imageName).DbType = DbType.String;
             command.Parameters.AddWithValue("@texte0", texte[0]).DbType = DbType.String;
             command.Parameters.AddWithValue("@texte1", texte[1]).DbType = DbType.String;
             command.Parameters.AddWithValue("@texte2", texte[2]).DbType = DbType.String;
+            command.Parameters.AddWithValue("@tag", tag).DbType = DbType.String;
             command.ExecuteNonQuery();
             command.Dispose();
 
             return 0;
         }
 
-        private void Button_TODO_Click(object sender, RoutedEventArgs e) {
+        private void Search_Flyout_Click(object sender, RoutedEventArgs e) {
+            SettingsFlyout.IsOpen = true;
+        }
 
+        private void Button_Search_Click(object sender, RoutedEventArgs e) {
+            string keyword = Search.Text;
+
+            CollectionView view;
+            if (keyword == null || keyword == "") {
+                ListView_Files.ItemsSource = allRecipes;
+                view = (CollectionView)CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
+                return;
+            }
+
+            HashSet<AddonFile> newList = new HashSet<AddonFile>();
+            CompareInfo compare = CultureInfo.InvariantCulture.CompareInfo;
+            CompareOptions options = CompareOptions.IgnoreSymbols | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase;
+            foreach (AddonFile af in allRecipes) {
+                if (SearchByTitle.IsChecked ?? false)
+                    if (compare.IndexOf(af.title, keyword, options) != -1)
+                        newList.Add(af);
+                
+                if (SearchByDescr.IsChecked ?? false)
+                    if(compare.IndexOf(af.prepa + af.ingred + af.intro, keyword, options) != -1)
+                        newList.Add(af);
+
+                if (SearchByTags.IsChecked ?? false)
+                    if (compare.IndexOf(af.tag, keyword, options) != -1)
+                        newList.Add(af);
+            }
+
+            ListView_Files.ItemsSource = newList;
+            view = (CollectionView)CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
         }
 
         private void InitializeContextMenu(object sender, ContextMenuEventArgs e) {
@@ -366,140 +375,13 @@ namespace AlotAddOnGUI {
             AddonFile recipe = (AddonFile)row.DataContext;
             try {
                 Process.Start(imgPath + recipe.imageNom + ".jpg");
-            } catch (Exception de) {
+            } catch (Exception) {
                 Debug.Write("[ERROR] File " + imgPath + recipe.imageNom + ".jpg" + " not found");
             }
         }
 
-        /// <summary>
-        /// Executes a task in the future
-        /// </summary>
-        /// <param name="action">Action to run</param>
-        /// <param name="timeoutInMilliseconds">Delay in ms</param>
-        /// <returns></returns>
-        /// 
-        public async Task Execute(Action action, int timeoutInMilliseconds) {
-            await Task.Delay(timeoutInMilliseconds);
-            action();
-        }
-
         private void Window_Loaded(object sender, RoutedEventArgs e) {
             LoadRecipes();
-        }
-
-        /// <summary>
-        /// Returns the mem output dir with a \ on the end.
-        /// </summary>
-        /// <param name="game">Game number to get path for</param>
-        /// <returns></returns>
-
-        private async void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e) {
-            string fname = null;
-            if (e.Source is Hyperlink) {
-                fname = (string)((Hyperlink)e.Source).Tag;
-            }
-            try {
-                System.Diagnostics.Process.Start(e.Uri.ToString());
-                if (fname != null) {
-                    this.nIcon.Visible = true;
-                    //this.WindowState = System.Windows.WindowState.Minimized;
-                    this.nIcon.ShowBalloonTip(14000, "Directions", "Download the file titled: \"" + fname + "\"", ToolTipIcon.Info);
-                }
-            } catch (Exception) {
-                System.Windows.Clipboard.SetText(e.Uri.ToString());
-                await this.ShowMessageAsync("Unable to open web browser", "Unable to open your default web browser. Open your browser and paste the link (already copied to clipboard) into your URL bar." + fname != null ? " Download the file named " + fname + ", then drag and drop it onto this program's interface." : "");
-            }
-        }
-
-        private async void Window_Closing(object sender, CancelEventArgs e) {
-            Close();
-        }
-
-        private void Expander_Expanded(object sender, RoutedEventArgs e) {
-            ((Expander)sender).BringIntoView();
-        }
-
-        private void MainWindow_StateChanged(object sender, EventArgs e) {
-            switch (this.WindowState) {
-                case WindowState.Maximized:
-                case WindowState.Normal:
-                    break;
-            }
-        }
-
-        private void ListView_ContextMenuOpening(object sender, ContextMenuEventArgs e) {
-            var rowIndex = ListView_Files.SelectedIndex;
-            var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            System.Windows.Controls.ContextMenu cm = row.ContextMenu;
-            AddonFile af = (AddonFile)row.DataContext;
-
-            //Reset
-            foreach (System.Windows.Controls.MenuItem mi in cm.Items) {
-                mi.Visibility = Visibility.Visible;
-            }
-
-            int i = 0;
-            while (i < cm.Items.Count) {
-                System.Windows.Controls.MenuItem mi = (System.Windows.Controls.MenuItem)cm.Items[i];
-                switch (i) {
-                    case 0: //Visit download
-                        mi.Visibility = Visibility.Collapsed;
-                        break;
-                    case 1:
-                        if (!af.Ready || PreventFileRefresh)
-                            mi.Visibility = Visibility.Collapsed;
-                        break;
-                    case 2: //Toggle on/off
-                        if (!af.Ready || PreventFileRefresh) {
-                            mi.Visibility = Visibility.Collapsed;
-                            break;
-                        }
-                        if (af.Enabled) {
-                            mi.Header = "Disable file";
-                            mi.ToolTip = "Click to disable file for this session.\nThis file will not be processed when staging files for installation.";
-                            mi.ToolTip = "Prevents this file from being used for installation";
-                        } else {
-                            mi.Header = "Enable file";
-                            mi.ToolTip = "Allows this file to be used for installation";
-                        }
-                        break;
-                    case 3: // Remove user file
-                        mi.Visibility = Visibility.Collapsed;
-                        break;
-                }
-                i++;
-            }
-        }
-
-        private void ContextMenu_OpenDownloadPage(object sender, RoutedEventArgs e) {
-            var rowIndex = ListView_Files.SelectedIndex;
-            var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile af = (AddonFile)row.DataContext;
-            // open url
-        }
-
-        private void ContextMenu_ViewFile(object sender, RoutedEventArgs e) {
-            var rowIndex = ListView_Files.SelectedIndex;
-            var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile af = (AddonFile)row.DataContext;
-        }
-
-        private void ContextMenu_RemoveFile(object sender, RoutedEventArgs e) {
-            var rowIndex = ListView_Files.SelectedIndex;
-            var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile af = (AddonFile)row.DataContext;
-        }
-
-        private void ListView_Files_SelectionChanged(object sender, SelectionChangedEventArgs e) {
-            if (ListView_Files.SelectedItem != null) {
-                ListView_Files.ScrollIntoView(ListView_Files.SelectedItem);
-            }
-        }
-
-        private void ListView_Files_Loaded(object sender, RoutedEventArgs e) {
-            if (ListView_Files.SelectedItem != null) {
-                ListView_Files.ScrollIntoView(ListView_Files.SelectedItem);
-            }
         }
     }
 }

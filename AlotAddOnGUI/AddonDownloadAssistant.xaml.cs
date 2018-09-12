@@ -3,9 +3,7 @@ using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System;
 using System.IO;
-using System.Windows;
 using System.Windows.Documents;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 
@@ -46,12 +44,6 @@ namespace AlotAddOnGUI {
                 System.Windows.Clipboard.SetText(e.Uri.ToString());
                 await this.ShowMessageAsync("Unable to open web browser", "Unable to open your default web browser. Open your browser and paste the link (already copied to clipboard) into your URL bar. Download the file named " + fname + ", then drag and drop it onto this program's interface.");
             }
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e) {
-        }
-
-        private void Window_Loaded(object sender, RoutedEventArgs e) {
         }
     }
 }

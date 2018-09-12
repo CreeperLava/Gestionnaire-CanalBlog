@@ -61,56 +61,6 @@ namespace GestionnaireCanalBlog.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] dsound {
-            get {
-                object obj = ResourceManager.GetObject("dsound", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] me2_binkw23 {
-            get {
-                object obj = ResourceManager.GetObject("me2_binkw23", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] me2_binkw32 {
-            get {
-                object obj = ResourceManager.GetObject("me2_binkw32", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] me3_binkw23 {
-            get {
-                object obj = ResourceManager.GetObject("me3_binkw23", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] me3_binkw32 {
-            get {
-                object obj = ResourceManager.GetObject("me3_binkw32", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
         internal static System.Drawing.Icon tooltiptrayicon {

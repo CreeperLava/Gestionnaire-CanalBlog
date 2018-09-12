@@ -9,22 +9,21 @@ namespace AlotAddOnGUI.classes {
 
         public string title { get; set; }
         public string url { get; set; }
-        public string stringDate { get; set; }
-        public DateTime date {
-            get {
-                return DateTime.ParseExact(stringDate, "dd MMMM yyyy", new CultureInfo("fr-FR"));
-            }
-        }
+        public string dateString { get; set; }
+        public int dateInt { get; set; }
         public string imageUrl { get; set; }
         public string imageNom { get; set; }
         public string intro { get; set; }
         public string prepa { get; set; }
         public string ingred { get; set; }
+        public string tag { get; set; }
+
         public int annee {
             get {
-                return date.Year;
+                return dateInt / 10000;
             }
         }
+
 
         public string Tooltipname {
             get {

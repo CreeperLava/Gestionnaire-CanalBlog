@@ -10,10 +10,8 @@
         BorderThickness="1"
         Title="{Binding recipe.title}" MinHeight="400" MinWidth="360" Height="400" Width="600"
         Topmost="True"
-        Closing="Window_Closing"
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
         Icon="ALOTInstallerIcon.ico"
-        Loaded="Window_Loaded"
         WindowStartupLocation="CenterOwner"
         ShowIconOnTitleBar="False"
     >
