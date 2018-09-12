@@ -90,7 +90,7 @@
 
                         <StackPanel  HorizontalAlignment="Left" Grid.Row="1" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
                             <Image x:Name="ReadyImageIcon" Height="15" Width="15" Source="images/greencheckmark.png"/>
-                            <TextBlock x:Name="Download_Hyperlink" Text="{Binding tag}" Margin="5,0"></TextBlock>
+                            <TextBlock x:Name="Download_Hyperlink" Text="{Binding tagFirst}" Margin="5,0"></TextBlock>
                         </StackPanel>
                         <TextBlock HorizontalAlignment="Right" Grid.Row="1" Grid.Column="3" Text="{Binding dateString}" FontWeight="Bold" VerticalAlignment="Center" />
                     </Grid>

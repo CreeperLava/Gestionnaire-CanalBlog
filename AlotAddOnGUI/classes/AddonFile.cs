@@ -1,6 +1,5 @@
-﻿using System;
-using System.ComponentModel;
-using System.Globalization;
+﻿using System.ComponentModel;
+using System.Linq;
 using System.Windows.Media;
 
 namespace AlotAddOnGUI.classes {
@@ -17,6 +16,12 @@ namespace AlotAddOnGUI.classes {
         public string prepa { get; set; }
         public string ingred { get; set; }
         public string tag { get; set; }
+
+        public string tagFirst {
+            get {
+                return tag.Split(' ').First();
+            }
+        }
 
         public int annee {
             get {

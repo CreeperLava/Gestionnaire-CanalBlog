@@ -77,14 +77,4 @@ namespace AlotAddOnGUI {
 
         private void Application_Exit(object sender, ExitEventArgs e) { }
     }
-
-    class Options {
-        [Option('u', "update-dest",
-          HelpText = "Copies AddonBuilder and everything in the current directory (and subdirectories) into the listed directory, then reboots using the new EXE.")]
-        public string UpdateDest { get; set; }
-
-        [Option('c', "completing-update",
-            HelpText = "Indicates that we are booting a new copy of ALOTInstaller that has just been upgraded")]
-        public bool BootingNewUpdate { get; set; }
-    }
 }
