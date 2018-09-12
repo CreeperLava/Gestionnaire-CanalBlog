@@ -1,4 +1,4 @@
-﻿using AlotAddOnGUI.classes;
+﻿using CanalBlogManager.classes;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System;
@@ -7,16 +7,16 @@ using System.Windows.Documents;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 
-namespace AlotAddOnGUI {
+namespace CanalBlogManager {
     /// <summary>
-    /// Interaction logic for AddonDownloadAssistant.xaml
+    /// Interaction logic for RecipeViewer.xaml
     /// </summary>
-    public partial class AddonDownloadAssistant : MetroWindow {
+    public partial class RecipeViewer : MetroWindow {
         private MainWindow windowRef;
-        public AddonFile recipe { get; set; }
+        public Recipe recipe { get; set; }
         internal bool SHUTTING_DOWN = false;
 
-        public AddonDownloadAssistant(MainWindow windowRef, AddonFile recipe) {
+        public RecipeViewer(MainWindow windowRef, Recipe recipe) {
             Owner = windowRef;
             InitializeComponent();
             this.windowRef = windowRef;

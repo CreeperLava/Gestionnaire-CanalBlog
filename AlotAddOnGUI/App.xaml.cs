@@ -1,15 +1,11 @@
-﻿using CommandLine;
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace AlotAddOnGUI {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
+namespace CanalBlogManager {
     public partial class App : Application {
         private static bool POST_STARTUP = false;
 
@@ -23,12 +19,12 @@ namespace AlotAddOnGUI {
                 application.Run();
             } catch (Exception e) {
                 OnFatalCrash(e);
-                throw e;
+                throw;
             }
         }
 
         private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args) {
-            var probingPath = AppDomain.CurrentDomain.BaseDirectory + @"Data\lib";
+            var probingPath = AppDomain.CurrentDomain.BaseDirectory + @"data\lib";
             var assyName = new AssemblyName(args.Name);
 
             var newPath = Path.Combine(probingPath, assyName.Name);
@@ -51,13 +47,13 @@ namespace AlotAddOnGUI {
         }
 
         void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e) {
-            string errorMessage = string.Format("ALOT Installer has crashed! This exception has caused the crash:");
+            string errorMessage = string.Format("This exception has caused the crash:");
             string st = FlattenException(e.Exception);
         }
 
         public static void OnFatalCrash(Exception e) {
             if (!POST_STARTUP) {
-                string errorMessage = string.Format("ALOT Installer has encountered a serious fatal startup crash:\n" + FlattenException(e));
+                string errorMessage = string.Format("Serious fatal startup crash:\n" + FlattenException(e));
                 File.WriteAllText("FATAL_STARTUP_CRASH.txt", errorMessage);
             }
         }

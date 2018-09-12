@@ -2,8 +2,8 @@
 using System.Linq;
 using System.Windows.Media;
 
-namespace AlotAddOnGUI.classes {
-    public sealed class AddonFile : INotifyPropertyChanged {
+namespace CanalBlogManager.classes {
+    public sealed class Recipe : INotifyPropertyChanged {
         public event PropertyChangedEventHandler PropertyChanged;
 
         public string title { get; set; }
@@ -93,26 +93,11 @@ namespace AlotAddOnGUI.classes {
         }
 
         private void OnPropertyChanged(string propertyName) {
-            var handler = PropertyChanged;
-            if (handler != null)
-                handler(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         public override string ToString() {
             return title;
-        }
-
-        internal void SetWorking() {
-            ReadyIconPath = "images/workingicon.png";
-        }
-        internal void SetError() {
-            ReadyIconPath = "images/redx_large.png";
-        }
-        internal bool IsInErrorState() {
-            return ReadyIconPath == "images/redx_large.png";
-        }
-        internal void SetIdle() {
-            ReadyIconPath = null;
         }
     }
 }

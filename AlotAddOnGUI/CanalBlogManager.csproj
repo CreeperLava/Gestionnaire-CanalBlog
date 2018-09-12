@@ -34,7 +34,7 @@
     </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>ALOTInstallerIcon.ico</ApplicationIcon>
+    <ApplicationIcon>CanalBlog.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
@@ -54,14 +54,15 @@
     <DefineConstants>
     </DefineConstants>
     <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
+    <DebugType>embedded</DebugType>
     <PlatformTarget>x64</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>AlotAddOnGUI.App</StartupObject>
+    <StartupObject>CanalBlogManager.App</StartupObject>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -156,14 +157,14 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="classes\AddonFile.cs" />
+    <Compile Include="classes\Recipe.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>AssemblyInfo.tt</DependentUpon>
     </Compile>
-    <Compile Include="AddonDownloadAssistant.xaml.cs">
-      <DependentUpon>AddonDownloadAssistant.xaml</DependentUpon>
+    <Compile Include="RecipeViewer.xaml.cs">
+      <DependentUpon>RecipeViewer.xaml</DependentUpon>
     </Compile>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -177,7 +178,7 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="AddonDownloadAssistant.xaml">
+    <Page Include="RecipeViewer.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -220,13 +221,10 @@
   <ItemGroup>
     <Resource Include="images\greydownload.png" />
     <Resource Include="images\greycheckmark.png" />
-    <Resource Include="images\origin\me1update.png" />
-    <Resource Include="images\origin\me2update.png" />
     <Resource Include="images\info.ico" />
     <Resource Include="images\greencheckmark.png" />
     <Resource Include="images\orangedownload.png" />
-    <None Include="ALOTADDON.ico" />
-    <Resource Include="ALOTInstallerIcon.ico" />
+    <Resource Include="CanalBlog.ico" />
     <Resource Include="images\greencheck_large.png" />
     <Resource Include="images\redx_large.png" />
     <Resource Include="images\workingicon.png" />

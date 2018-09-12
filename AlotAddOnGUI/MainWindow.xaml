@@ -1,5 +1,5 @@
 ﻿<Controls:MetroWindow 
-        x:Class="AlotAddOnGUI.MainWindow"
+        x:Class="CanalBlogManager.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -8,11 +8,11 @@
     mc:Ignorable="d"
         BorderBrush="{DynamicResource AccentColorBrush}"
         BorderThickness="1"
-        Title="ALOT Installer" MinHeight="600" MinWidth="800" Height="600" Width="800"
+        Title="Gestionnaire Canalblog" MinHeight="600" MinWidth="800" Height="600" Width="800"
         Loaded="Window_Loaded"
         WindowButtonCommandsOverlayBehavior="Never"  
         DataContext="{Binding RelativeSource={RelativeSource Self}}"
-        Icon="ALOTInstallerIcon.ico"
+        Icon="CanalBlog.ico"
         ShowIconOnTitleBar="False">
     <Window.Resources>
         <Style TargetType="{x:Type CheckBox}" BasedOn="{StaticResource MetroCheckBox}">

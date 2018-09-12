@@ -1,4 +1,4 @@
-﻿using AlotAddOnGUI.classes;
+﻿using CanalBlogManager.classes;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using System;
@@ -22,10 +22,7 @@ using System.Net;
 using System.Threading;
 using System.Globalization;
 
-namespace AlotAddOnGUI {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+namespace CanalBlogManager {
     public partial class MainWindow : MetroWindow, INotifyPropertyChanged {
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) {
@@ -35,7 +32,7 @@ namespace AlotAddOnGUI {
         NotifyIcon nIcon = new NotifyIcon();
 
         // my vars
-        private BindingList<AddonFile> allRecipes;
+        private BindingList<Recipe> allRecipes;
         string imgPath = @"data\img\";
         string database = @"data\recipes.db";
         string blacklist = @"data\blacklist.txt";
@@ -64,9 +61,10 @@ namespace AlotAddOnGUI {
                 OpenDatabase();
             UpdateDatabase();
 
-            UpdateXml();
+            GetDatabaseAsXml();
         }
 
+        // Create the SQLite database that contains all the recipes
         public void CreateDatabase() {
             SQLiteConnection.CreateFile(database);
             dbConnection = new SQLiteConnection(String.Format("Data Source={0};", database));
@@ -76,19 +74,31 @@ namespace AlotAddOnGUI {
             (new SQLiteCommand(sql, dbConnection)).ExecuteNonQuery();
         }
 
+        // Open the SQLite database
         public void OpenDatabase() {
             dbConnection = new SQLiteConnection(String.Format("Data Source={0};", database));
             dbConnection.Open();
         }
 
+        // Update the SQLite database with new recipes, if any
+        // The HTML parsing is multithreaded
         public void UpdateDatabase() {
             foreach (var urlMonth in GetUrls(urlIndex, month, "//a[@href]", "href")) {
                 Parallel.ForEach(GetUrls(urlMonth, recipe, "//meta[@content]", "content").Except(blacklistUrls), urlRecipe => {
-                    var sql = String.Format("SELECT * FROM recipes WHERE url='{0}' LIMIT 1", urlRecipe);
-                    var result = (new SQLiteCommand(sql, dbConnection)).ExecuteScalar();
-                    if (result != null) // check if recipe in db
-                        return; // if yes, skip it
 
+                    // verify that the recipe isn't already in the db
+                    // if it is, skip it
+                    using (SQLiteCommand command = dbConnection.CreateCommand()) {
+                        command.CommandText = "SELECT * FROM recipes WHERE url=@url LIMIT 1";
+                        command.Parameters.AddWithValue("@url", urlRecipe).DbType = DbType.String;
+                        var result = command.ExecuteScalar();
+                        if (result != null)
+                            return;
+                    }
+
+                    // otherwise, extract it from the html and add it to the database
+                    // we check for errors in the parsing and blacklist any urls that don't
+                    // return anything, to avoid parsing them again the next time
                     var err = ExtractRecipe(urlRecipe);
                     if (err != 0) {
                         String debug = "[ERROR] Error selecting ";
@@ -115,59 +125,7 @@ namespace AlotAddOnGUI {
                     }
                 });
             }
-            (new SQLiteCommand("VACUUM", dbConnection)).ExecuteNonQuery();
-        }
-
-        private void UpdateXml() {
-            string sql = "SELECT * FROM recipes";
-            using (SQLiteCommand sqlComm = new SQLiteCommand(sql, dbConnection) { CommandType = CommandType.Text }) {
-                SQLiteDataAdapter da = new SQLiteDataAdapter(sqlComm);
-                DataSet ds = new DataSet();
-                da.Fill(ds);
-                ds.Tables[0].WriteXml(xmlRecipes);
-            }
-        }
-
-        private async void LoadRecipes() {
-            List<AddonFile> linqlist = null;
-            XElement rootElement = XElement.Load(new StringReader(xmlRecipes.ToString()));
-
-            allRecipes = new BindingList<AddonFile>(); //prevents crashes
-
-            try {
-                // SQL like syntax : find all elements named "Table" under root
-                // return each of these elements as e
-                // create a new AddonFile based on each e
-                linqlist =
-                (from e in rootElement.Elements("Table")
-                    select new AddonFile {
-                        title = (string)e.Element("title"),
-                        url = (string)e.Element("url"),
-                        dateString = (string)e.Element("dateString"),
-                        dateInt = (int)e.Element("dateInt"),
-                        imageUrl = (string)e.Element("imageUrl"),
-                        imageNom = (string)e.Element("imageNom"),
-                        intro = (string)e.Element("intro"),
-                        prepa = (string)e.Element("prepa"),
-                        ingred = (string)e.Element("ingred"),
-                        tag = (string)e.Element("tag"),
-                        Enabled = true,
-                        Ready = true,
-                }).ToList();
-            } catch (Exception e) {
-                Debug.Write("[ERROR] Error has occured parsing the XML!");
-                Debug.Write(App.FlattenException(e));
-                MessageDialogResult result = await this.ShowMessageAsync("Error reading file manifest", "An error occured while reading the manifest file for installation.\n\n" + e.Message, MessageDialogStyle.Affirmative);
-                return;
-            }
-
-            linqlist = linqlist.OrderByDescending(x => x.dateInt).ToList();
-            allRecipes = new BindingList<AddonFile>(linqlist);
-
-            var set = new HashSet<AddonFile>(allRecipes);
-            ListView_Files.ItemsSource = allRecipes; // refresh UI
-            CollectionView view = (CollectionView) CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
-            view.GroupDescriptions.Add(new PropertyGroupDescription("annee"));
+            (new SQLiteCommand("VACUUM", dbConnection)).ExecuteNonQuery(); // compact database
         }
 
         public static HashSet<string> GetUrls(string url, Regex r, string n, string attr) {
@@ -183,40 +141,6 @@ namespace AlotAddOnGUI {
                     res.Add(link);
             }
             return res;
-        }
-
-        public String SaveImage(string url, string name) {
-            WebClient webClient = new WebClient();
-            string path = imgPath + name + ".jpg";
-            if (!File.Exists(path)) {
-                using (webClient) {
-                    try {
-                        Debug.WriteLine("[LOG] Start download of " + url);
-                        webClient.DownloadFile(new Uri(url), path);
-
-                        if (new FileInfo(path).Length == 0) {
-                            Debug.WriteLine("[WARNING] File " + url + " could not be downloaded");
-                            File.Delete(path);
-                            return "";
-                        } else {
-                            return name;
-                        }
-                    } catch (Exception e) {
-                        Debug.WriteLine("[WARNING]File " + url + " could not be downloaded : " + e.Message);
-                        Thread.Sleep(2000);
-                        Debug.WriteLine("[LOG] Restart download of " + url);
-                        try {
-                            webClient.DownloadFile(new Uri(url), path);
-                            return name;
-                        } catch (Exception f) {
-                            Debug.Write("[WARNING] File " + url + " could not be downloaded : " + f.Message);
-                            return "";
-                        }
-                    }
-                }
-            } else {
-                return name;
-            }
         }
 
         public int ExtractRecipe(string url) {
@@ -247,7 +171,7 @@ namespace AlotAddOnGUI {
             if (imgNode == null)
                 return -4;
             string imageUrl = imgNode.GetAttributeValue("src", "").Replace("_o", "").Replace(".to_resize_150x3000", "");
-            if (!picture.Match(imageUrl).Success) { 
+            if (!picture.Match(imageUrl).Success) {
                 Debug.WriteLine("[WARNING] No valid image for " + url);
                 return -5;
             }
@@ -286,34 +210,126 @@ namespace AlotAddOnGUI {
             HtmlNodeCollection tagNodes = footerNode.SelectNodes("//div[@class='itemfooter']/a[@rel='tag']");
             string tag = "";
 
-            if(tagNodes == null)
+            if (tagNodes == null)
                 Debug.WriteLine("[WARNING] No valid tags for " + url);
             else
                 foreach (HtmlNode t in tagNodes)
                     tag += t.InnerText.Replace("&nbsp;", "").Replace("&quot;", @"'") + " ";
 
-            SQLiteCommand command = dbConnection.CreateCommand();
-            command.CommandText = "INSERT INTO recipes VALUES(@title, @url, @dateString, @dateInt, @imageUrl, @imageName, @texte0, @texte1, @texte2, @tag)";
-            command.Parameters.AddWithValue("@title", title).DbType = DbType.String;
-            command.Parameters.AddWithValue("@url", url).DbType = DbType.String;
-            command.Parameters.AddWithValue("@dateString", dateString).DbType = DbType.String;
-            command.Parameters.AddWithValue("@dateInt", dateInt).DbType = DbType.Int32;
-            command.Parameters.AddWithValue("@imageUrl", imageUrl).DbType = DbType.String;
-            command.Parameters.AddWithValue("@imageName", imageName).DbType = DbType.String;
-            command.Parameters.AddWithValue("@texte0", texte[0]).DbType = DbType.String;
-            command.Parameters.AddWithValue("@texte1", texte[1]).DbType = DbType.String;
-            command.Parameters.AddWithValue("@texte2", texte[2]).DbType = DbType.String;
-            command.Parameters.AddWithValue("@tag", tag).DbType = DbType.String;
-            command.ExecuteNonQuery();
-            command.Dispose();
+            using (SQLiteCommand command = dbConnection.CreateCommand()) {
+                command.CommandText = "INSERT INTO recipes VALUES(@title, @url, @dateString, @dateInt, @imageUrl, @imageName, @texte0, @texte1, @texte2, @tag)";
+                command.Parameters.AddWithValue("@title", title).DbType = DbType.String;
+                command.Parameters.AddWithValue("@url", url).DbType = DbType.String;
+                command.Parameters.AddWithValue("@dateString", dateString).DbType = DbType.String;
+                command.Parameters.AddWithValue("@dateInt", dateInt).DbType = DbType.Int32;
+                command.Parameters.AddWithValue("@imageUrl", imageUrl).DbType = DbType.String;
+                command.Parameters.AddWithValue("@imageName", imageName).DbType = DbType.String;
+                command.Parameters.AddWithValue("@texte0", texte[0]).DbType = DbType.String;
+                command.Parameters.AddWithValue("@texte1", texte[1]).DbType = DbType.String;
+                command.Parameters.AddWithValue("@texte2", texte[2]).DbType = DbType.String;
+                command.Parameters.AddWithValue("@tag", tag).DbType = DbType.String;
+                command.ExecuteNonQuery();
+            }
 
             return 0;
         }
 
+        public String SaveImage(string url, string name) {
+            WebClient webClient = new WebClient();
+            string path = imgPath + name + ".jpg";
+            if (!File.Exists(path)) {
+                using (webClient) {
+                    try {
+                        Debug.WriteLine("[LOG] Start download of " + url);
+                        webClient.DownloadFile(new Uri(url), path);
+
+                        if (new FileInfo(path).Length == 0) {
+                            Debug.WriteLine("[WARNING] File " + url + " could not be downloaded");
+                            File.Delete(path);
+                            return "";
+                        } else {
+                            return name;
+                        }
+                    } catch (Exception e) {
+                        Debug.WriteLine("[WARNING]File " + url + " could not be downloaded : " + e.Message);
+                        Thread.Sleep(2000);
+                        Debug.WriteLine("[LOG] Restart download of " + url);
+                        try {
+                            webClient.DownloadFile(new Uri(url), path);
+                            return name;
+                        } catch (Exception f) {
+                            Debug.Write("[WARNING] File " + url + " could not be downloaded : " + f.Message);
+                            return "";
+                        }
+                    }
+                }
+            } else {
+                return name;
+            }
+        }
+
+        // extract the sqlite database in xml format for linq
+        // we use a string reader, not a file, for performance
+        private void GetDatabaseAsXml() {
+            using (SQLiteCommand command = new SQLiteCommand("SELECT * FROM recipes", dbConnection)) {
+                SQLiteDataAdapter da = new SQLiteDataAdapter(command);
+                DataSet ds = new DataSet();
+                da.Fill(ds);
+                ds.Tables[0].WriteXml(xmlRecipes);
+            }
+        }
+
+        // load the recipes from the XML, create the Recipe objects
+        // add them to the GUI's ListViewer and refresh the UI
+        private async void LoadRecipes() {
+            List<Recipe> linqlist = null;
+            XElement rootElement = XElement.Load(new StringReader(xmlRecipes.ToString()));
+
+            allRecipes = new BindingList<Recipe>(); //prevents crashes
+
+            try {
+                // SQL like syntax : find all elements named "Table" under root
+                // return each of these elements as e
+                // create a new Recipe based on each e
+                linqlist =
+                (from e in rootElement.Elements("Table")
+                    select new Recipe {
+                        title = (string)e.Element("title"),
+                        url = (string)e.Element("url"),
+                        dateString = (string)e.Element("dateString"),
+                        dateInt = (int)e.Element("dateInt"),
+                        imageUrl = (string)e.Element("imageUrl"),
+                        imageNom = (string)e.Element("imageNom"),
+                        intro = (string)e.Element("intro"),
+                        prepa = (string)e.Element("prepa"),
+                        ingred = (string)e.Element("ingred"),
+                        tag = (string)e.Element("tag"),
+                        Enabled = true,
+                        Ready = true,
+                }).ToList();
+            } catch (Exception e) {
+                Debug.Write("[ERROR] Error has occured parsing the XML!");
+                Debug.Write(App.FlattenException(e));
+                MessageDialogResult result = await this.ShowMessageAsync("Error reading file manifest", "An error occured while reading the manifest file for installation.\n\n" + e.Message, MessageDialogStyle.Affirmative);
+                return;
+            }
+
+            linqlist = linqlist.OrderByDescending(x => x.dateInt).ToList();
+            allRecipes = new BindingList<Recipe>(linqlist);
+
+            var set = new HashSet<Recipe>(allRecipes);
+            ListView_Files.ItemsSource = allRecipes; // refresh UI
+            CollectionView view = (CollectionView) CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
+            view.GroupDescriptions.Add(new PropertyGroupDescription("annee")); // group recipes by year
+        }
+
+        // display the flyout to filter the list
         private void Search_Flyout_Click(object sender, RoutedEventArgs e) {
             SettingsFlyout.IsOpen = true;
         }
 
+        // filtering function : ran each time the search textbox changes
+        // string comparison is case insensitive and ignores diacritics
         private void Button_Search_Click(object sender, RoutedEventArgs e) {
             string keyword = Search.Text;
 
@@ -324,10 +340,10 @@ namespace AlotAddOnGUI {
                 return;
             }
 
-            HashSet<AddonFile> newList = new HashSet<AddonFile>();
+            HashSet<Recipe> newList = new HashSet<Recipe>();
             CompareInfo compare = CultureInfo.InvariantCulture.CompareInfo;
             CompareOptions options = CompareOptions.IgnoreSymbols | CompareOptions.IgnoreNonSpace | CompareOptions.IgnoreCase;
-            foreach (AddonFile af in allRecipes) {
+            foreach (Recipe af in allRecipes) {
                 if (SearchByTitle.IsChecked ?? false)
                     if (compare.IndexOf(af.title, keyword, options) != -1)
                         newList.Add(af);
@@ -357,22 +373,22 @@ namespace AlotAddOnGUI {
         private void ContextMenu_Recipe(object sender, RoutedEventArgs e) {
             var rowIndex = ListView_Files.SelectedIndex;
             var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile recipe = (AddonFile)row.DataContext;
-            AddonDownloadAssistant viewRecipe = new AddonDownloadAssistant(this, recipe);
+            Recipe recipe = (Recipe)row.DataContext;
+            RecipeViewer viewRecipe = new RecipeViewer(this, recipe);
             viewRecipe.Show();
         }
 
         private void ContextMenu_Open(object sender, RoutedEventArgs e) {
             var rowIndex = ListView_Files.SelectedIndex;
             var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile recipe = (AddonFile) row.DataContext;
+            Recipe recipe = (Recipe) row.DataContext;
             Process.Start(recipe.url);
         }
 
         private void ContextMenu_Update(object sender, RoutedEventArgs e) {
             var rowIndex = ListView_Files.SelectedIndex;
             var row = (System.Windows.Controls.ListViewItem)ListView_Files.ItemContainerGenerator.ContainerFromIndex(rowIndex);
-            AddonFile recipe = (AddonFile)row.DataContext;
+            Recipe recipe = (Recipe)row.DataContext;
             try {
                 Process.Start(imgPath + recipe.imageNom + ".jpg");
             } catch (Exception) {
