@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Forms;
 using System.Data.SQLite;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
@@ -28,8 +27,7 @@ namespace CanalBlogManager {
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
-        NotifyIcon nIcon = new NotifyIcon();
+        public int count { get; set; }
 
         // my vars
         private BindingList<Recipe> allRecipes;
@@ -321,6 +319,8 @@ namespace CanalBlogManager {
             ListView_Files.ItemsSource = allRecipes; // refresh UI
             CollectionView view = (CollectionView) CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
             view.GroupDescriptions.Add(new PropertyGroupDescription("annee")); // group recipes by year
+            count = allRecipes.Count;
+            OnPropertyChanged("count");
         }
 
         // display the flyout to filter the list
@@ -337,6 +337,8 @@ namespace CanalBlogManager {
             if (keyword == null || keyword == "") {
                 ListView_Files.ItemsSource = allRecipes;
                 view = (CollectionView)CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
+                count = allRecipes.Count;
+                OnPropertyChanged("count");
                 return;
             }
 
@@ -359,6 +361,8 @@ namespace CanalBlogManager {
 
             ListView_Files.ItemsSource = newList;
             view = (CollectionView)CollectionViewSource.GetDefaultView(ListView_Files.ItemsSource);
+            count = newList.Count;
+            OnPropertyChanged("count");
         }
 
         private void InitializeContextMenu(object sender, ContextMenuEventArgs e) {

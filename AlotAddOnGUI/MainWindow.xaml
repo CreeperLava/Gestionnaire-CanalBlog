@@ -20,35 +20,6 @@
                 <SolidColorBrush x:Key="HighlightBrush" Color="{DynamicResource IdealForegroundColor}" />
             </Style.Resources>
         </Style>
-        <Style x:Key="BottomButton_BlackRight" TargetType="{x:Type Button}" BasedOn="{StaticResource SquareButtonStyle}">
-            <Setter Property="BorderThickness" Value="1,2,3,3" />
-            <Setter Property="Padding" Value="10,5,10,5" />
-        </Style>
-
-        <Style x:Key="LinkLabel" TargetType="Button">
-            <Setter Property="VerticalAlignment" Value="Top"/>
-            <Setter Property="HorizontalAlignment" Value="Center"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Foreground" Value="Lime"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <TextBlock TextDecorations="Underline" 
-                    Text="{TemplateBinding Content}"
-                    Background="{TemplateBinding Background}"/>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Foreground" Value="MediumVioletRed"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style TargetType="{x:Type ContentPresenter}">
-            <Setter Property="Margin" Value="0,0,0,0" />
-        </Style>
     </Window.Resources>
 
     <Grid>
@@ -153,9 +124,17 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Button Grid.Column="1" />
-            <Button Grid.Column="2" />
-            <Button x:Name="Button_Settings" Grid.Column="4" Content="Recherche" IsEnabled="true"  Style="{StaticResource BottomButton_BlackRight}" Controls:ControlsHelper.ContentCharacterCasing="Upper" FontSize="10" Click="Search_Flyout_Click" ToolTip="Faire une recherche"/>
+            <TextBlock Name="StatusBar" Grid.Column="0" VerticalAlignment="Center" Margin="10,0,0,0">
+                <Run Text="On affiche "/>
+                <Run Text="{Binding count, UpdateSourceTrigger=PropertyChanged}"/>
+                <Run Text=" recettes."/>
+            </TextBlock>
+            <Button x:Name="Button_Settings"
+                    Grid.Column="2" Content="Recherche" IsEnabled="true"
+                    Style="{StaticResource AccentedSquareButtonStyle}"
+                    Controls:ControlsHelper.ContentCharacterCasing="Upper"
+                    FontSize="10" Click="Search_Flyout_Click" ToolTip="Faire une recherche"
+                    Width="{Binding ActualWidth, ElementName=SettingsFlyout, Mode=OneWay}"/>
         </Grid>
     </Grid>
 
